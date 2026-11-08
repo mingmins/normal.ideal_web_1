@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Normal / Ideal — Type Specimen</title>
+
+<style>
+/* ───────── 기본 ───────── */
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;background:#fff;color:#000}
+body{font-family:"Noto Sans Mono","Courier New",monospace}
+button,input,textarea{font:inherit}
+button{border:0;background:transparent;color:inherit;cursor:pointer}
+button:focus-visible{outline:1px dashed #555;outline-offset:5px}
+[hidden]{display:none!important}
+
+h1{
+  font-size:35px;line-height:1.06;font-weight:400;letter-spacing:-2px;
+  margin:0 0 10px;overflow-wrap:normal;
+}
+h1.long-name{font-size:35px;letter-spacing:-1.5px}
+
+/* ───────── 홈 화면 ───────── */
+.home-screen{position:fixed;inset:0;overflow:hidden;background:#fff}
+.home-title{position:absolute;left:2.7%;top:7.5%;width:91%;height:78%;object-fit:contain}
+.home-diagram{position:absolute;left:1.2%;top:1.5%;width:22%;max-width:330px;padding:0;z-index:2}
+.home-diagram img{display:block;width:100%}
+
+/* 홈 상태(is-home)일 때 타이핑 UI 숨김 */
+body.is-home .logo,
+body.is-home .categories,
+body.is-home .editor,
+body.is-home .selection,
+body.is-home .status { display: none; }
+
+/* ───────── 상단: 로고 / Try typing ───────── */
+.logo{position:fixed;left:2vw;top:3.5vh;width:220px;padding:0}
+.logo img{display:block;width:110%}
+.try{position:fixed;right:4.8vw;top:2.6vh;font-size:18px;padding:0;z-index:5}
+.try {
+  transition: opacity 0.2s ease;
+}
+
+.try:hover {
+  opacity: 0.5;
+}
+
+/* 홈 상태가 아닐 때(타이핑 화면일 때) Try typing 버튼 숨김 */
+body:not(.is-home) .try { display: none; }
+
+/* ───────── 좌측: 카테고리 ───────── */
+.categories{position:fixed;left:45px;top:20vh;width:200px;display:grid;gap:22px}
+.category{text-align:center}
+.category-main{font-size:11px;line-height:1.25;padding:0;display:block;width:100%;white-space:nowrap}
+.category-main span{display:block}
+.category-main:hover{opacity:.55}
+.marks{display:flex;justify-content:space-between;padding:0 29px;height:12px}
+.mark{position:relative;width:16px;height:12px;padding:0}
+.mark:after{content:'';position:absolute;left:1px;right:1px;top:5px;height:1px;background:#000}
+.mark.selected:after{height:3px;top:4px}
+
+/* ───────── 좌측 하단: 선택한 서체 ───────── */
+.selection{position:fixed;left:10px;bottom:4.3vh;width:290px;text-align:center}
+#style-label{font-size:18px;white-space:nowrap}
+.tabs{display:flex;justify-content:center;gap:24px;margin-top:12px}
+
+/* ───────── 하단 컨트롤 바 (사이즈, 행간) ───────── */
+.bottom-controls {
+  margin-top: 30px; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;    
+  gap: 15px;              
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 20px;
+  color: #000;
+}
+.bottom-controls label {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+}
+.bottom-controls input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 200px;
+  height: 1px;
+  background: #000;
+  outline: none;
+  cursor: pointer;
+}
+.bottom-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #000;
+}
+
+/* ───────── 타이핑 영역 ───────── */
+.editor{
+  position: fixed; top: 3vh; left: 300px; right: 5vw; bottom: 0vh;
+  width: auto;
+  border: 0; outline: 0; resize: none; 
+  padding-left: 100px;
+
+
+  background: transparent; color: #000;
+  
+  font-family: Georgia, serif;
+  font-size: 190px;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1; 
+  text-rendering: optimizeLegibility; 
+  margin-top: 0; /* JS에서 행간 조절 시 윗줄 고정용으로 사용됨 */
+}
+.editor::placeholder{color:#e3e3e3}
+
+.status{position:fixed;left:375px;bottom:27px;max-width:45vw;color:#888;font:10px Arial,sans-serif}
+.status:empty{display:none}
+
+/* ───────── 서체 연결 다이얼로그 ───────── */
+dialog{width:min(820px,94vw);max-height:85vh;border:1px solid #333;padding:30px}
+dialog::backdrop{background:#ffffffdb}
+dialog h2{font-size:25px;font-weight:400}
+dialog p{font:12px/1.8 Arial,sans-serif;color:#666}
+.close{float:right;font-size:25px}
+.font-group{display:grid;grid-template-columns:120px repeat(3,minmax(0,1fr));gap:12px;border-top:1px solid #ddd;padding:18px 0;font-size:11px}
+.font-group strong{font-weight:400}
+.font-upload{border:1px solid #ddd;padding:10px;line-height:1.8;min-width:0}
+.font-upload span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#888}
+.font-upload input{width:100%;font-size:9px;margin-top:8px}
+.font-upload.loaded{border-color:#000}
+
+/* ───────── 반응형 ───────── */
+@media(min-width:1600px){
+  .categories,.selection{left:2vw}
+}
+@media(max-height:650px) and (min-width:701px){
+  .categories{top:110px;gap:14px}
+  .category-main{font-size:15px}
+  .selection{bottom:20px}
+  h1{font-size:35px;margin-bottom:20px}
+}
+@media(max-width:700px){
+  .logo{width:160px;left:20px;top:22px}
+  .try{font-size:16px;right:20px;top:25px}
+  .home-diagram{width:45%;left:4%;top:8%}
+  .home-title{left:3%;width:94%;top:24%;height:60%}
+  .categories{position:absolute;left:20px;right:20px;top:110px;width:auto;grid-template-columns:1fr 1fr;gap:22px 12px}
+  .category-main{font-size:12px}
+  .marks{padding:0 15px}
+  .editor{
+    left:20px;right:20px;top:280px;bottom:auto;width:calc(100% - 40px);
+    height:calc(100svh - 470px);min-height:150px;font-size:75px;padding:0;
+  }
+  .selection{left:20px;bottom:100px;width:230px}
+  h1{font-size:28px;margin-bottom:15px;letter-spacing:-1px}
+  h1.long-name{font-size:28px}
+  #style-label{font-size:16px}
+  .bottom-controls {
+    flex-direction: column;
+    gap: 15px;
+    width: 80%;
+    bottom: 30px;
+    font-size: 18px;
+  }
+  .bottom-controls input[type="range"] {
+    width: 100%;
+  }
+}
+
+/* ═══════ 스크롤형 소개 페이지: 첨부 시안의 위치와 비례 고정 ═══════ */
+html {scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+  scroll-padding-top: 0;
+}
+
+/* 목차 시작점 */
+.showcase-index {
+  scroll-snap-align: start;
+}
+
+/* 4개 상세 콘텐츠 시작점 */
+.spec-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+body.is-home { overflow-x:hidden; overflow-y:auto; }
+body:not(.is-home) { overflow:hidden; }
+body.is-home .home-screen {position:relative;height:100svh;min-height:500px;
+ scroll-snap-align: start;}
+body:not(.is-home) .showcase,
+body:not(.is-home) .home-down {display:none;}
+.home-down {position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:90px;height:42px;z-index:6;display:grid;place-items:center;}
+.home-down svg {display:block;width:52px;height:18px;}
+.showcase {width:100%;background:#fff;}
+.showcase a {color:inherit;text-decoration:none;}
+/* 목차: 검정 바탕, 같은 높이의 네 줄, 작은 대각선 보조 제목 */
+.showcase-index {min-height:100svh;background:#333333;color:#fff;
+  display:grid;grid-template-rows: 64px repeat(4,1fr);}
+.index-up {display:grid;place-items:center;}
+.index-up a {display:grid;place-items:center;width:90px;height:100%;}
+.index-up svg {width:52px;height:18px;}
+.index-row {min-height:0;display:flex;align-items:center;justify-content:center;
+  position:relative;border-top:1px solid #777;padding:0 10%;}
+.index-row:hover .index-name,.index-row:focus-visible .index-name {opacity:.72;}
+.index-name {font-size:clamp(26px,3.8vw,64px);line-height:1.15;font-weight:400;
+  letter-spacing:-.035em;text-align:center;white-space:nowrap;}
+.index-sub {position:absolute;right:2.5%;bottom:30%;font-size:clamp(14px,1.6vw,27px);
+
+  transform:rotate(-35deg);white-space:nowrap;}
+/* 각 카테고리: 위 검정 제목 / 아래 흰색 정보, 원본 시안의 2단 구조 */
+.spec-section {scroll-margin-top:0;}
+.spec-heading {height:36svh;
+  min-height:265px;
+  position:relative;
+  background:#030303;color:#fff;
+  padding:2.5vh 2%; 
+
+  border-top: 1px solid #777;
+
+}
+
+
+.spec-heading h2 {margin:0;font-weight:400;font-size:6.5vw;
+  line-height:1.06;letter-spacing:-.035em;}
+.spec-heading .spec-side {position:absolute;right:2.5%;bottom:25%;font-size:clamp(16px,1.65vw,28px);
+  transform:rotate(-35deg);white-space:nowrap;}
+.spec-content {height:64svh;min-height:440px;display:grid;grid-template-columns:44% 56%;
+  background:#fff;color:#000;}
+.spec-info {height:100%;display:grid;grid-template-rows:repeat(3,1fr);
+  padding:0 1.5% 0 3.3%;}
+.spec-info-row {min-height:0;display:grid;grid-template-columns: 8% 15% minmax(0,1fr) 14%;
+  column-gap:2%;align-items:center;}
+
+.spec-index {font-size:clamp(10px,.86vw,14px);
+white-space:nowrap;
+transform: translateX(2vw);
+}
+
+.spec-vertical {
+  font-size: clamp(11px, 1vw, 17px);
+
+  writing-mode: vertical-rl;
+  transform: translateX(-1vw) rotate(180deg);
+
+
+  white-space: pre-line;
+  text-align: center;
+
+  justify-self: center;
+  align-self: center;
+
+  line-height: 1.2;
+}
+.spec-copy {font-family:Arial,'Apple SD Gothic Neo',sans-serif;
+  font-size:clamp(10px,.95vw,15px);line-height:1.4;word-break:keep-all;}
+/* 호버 대상은 왼쪽 세로 폰트 이름만 */
+.spec-fontname {
+  justify-self: center;
+  align-self: center;
+
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.2;
+
+  font-size: clamp(11px, 1vw, 17px);
+  cursor: pointer;
+  padding: 12px 7px;
+  transition: opacity .15s;
+}
+
+.spec-fontname::after {
+  content: "↗";
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.8em;
+  opacity: 0.65;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.spec-fontname:hover::after,
+.spec-fontname:focus-visible::after {
+  transform: translateY(-4px);
+  opacity: 1;
+}
+
+
+.spec-fontname:hover,.spec-fontname:focus-visible {opacity:.45;outline-offset:4px;}
+
+.spec-preview {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  container-type: inline-size;
+}
+
+.spec-glyph {
+  display:none;
+  font-size:28vw;
+  line-height:1;
+  font-weight:400;
+  font-kerning:normal;
+  font-feature-settings:'kern' 1,'liga' 1;
+  text-rendering:optimizeLegibility;
+  user-select:none;
+  pointer-events:none;
+
+}
+
+/* 호버했을 때 설명 숨기기 */
+.spec-preview.is-active .spec-description {
+  display:none;
+}
+
+/* 호버했을 때 서체 글자 표시 */
+.spec-preview.is-active .spec-glyph {
+  display:block;
+}
+/* 시안의 오른쪽 세로 라벨 3개: 고정, 미리보기 변화와 무관 */
+.spec-side-labels {position:absolute;right:7%;top:0;bottom:0;display:grid;
+  grid-template-rows:repeat(3,1fr);align-items:center;pointer-events:none;}
+.spec-side-labels span {
+  writing-mode: horizontal-tb;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  white-space: nowrap;
+
+  font-family: "Noto Sans Mono", "Courier New", monospace;
+  font-size: clamp(10px, .9vw, 14px);
+}
+
+/* 한글 라벨만 별도 폰트 적용 */
+.spec-side-labels span:not(:first-child) {
+  font-family: "Apple SD Gothic Neo", sans-serif;
+}
+
+
+/* 원래 시안의 우측 설명은 시각적 간섭을 피하도록 선택 상태에서 숨김 */
+.spec-description {
+  position:absolute;
+  left:2.5%;
+  top:6%;
+  width:45%;
+  margin:0;
+
+  font-family:Arial,'Apple SD Gothic Neo',sans-serif;
+  font-size:1.2vw;
+  line-height:1.5;
+
+  word-break:keep-all;
+  overflow-wrap:normal;
+  pointer-events:none;
+}
+
+.spec-preview.is-active .spec-description {visibility:hidden;}
+@media(max-width:900px){
+  .index-name {font-size:clamp(24px,4vw,45px);white-space:normal;max-width:78%;}
+  .index-sub {right:3%;font-size:13px;}
+  .spec-heading h2 {font-size:clamp(30px,5vw,55px);}
+  .spec-content {grid-template-columns:46% 54%;}
+  .spec-info {padding-left:2%;}
+  .spec-info-row {grid-template-columns:9% 16% minmax(0,1fr) 18%;column-gap:1%;}
+  .spec-copy {font-size:10px;}
+  .spec-description {font-size:10px;}
+  .spec-glyph {font-size:clamp(105px,23vw,250px);}
+}
+@media(max-width:600px){
+  /* 작은 화면에서도 좌우 정보 구조를 유지: 열을 위아래로 재배치하지 않음 */
+  .spec-heading {height:32svh;min-height:190px;}
+  .spec-content {height:68svh;min-height:400px;}
+  .spec-copy {font-size:8px;line-height:1.45;}
+  .spec-index,.spec-vertical,.spec-fontname {font-size:9px;}
+  .spec-description {display:none;}
+  .spec-side-labels span {font-size:8px;}
+  .spec-glyph {font-size:25vw;}
+  .spec-info-row {grid-template-columns:10% 17% minmax(0,1fr) 18%;}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
+
+</style>
+</head>
+
+<body class="is-home">
+
+<!-- ═════════ 홈 화면 ═════════ -->
+<section class="home-screen" id="home-screen" aria-label="Normal Ideal 홈">
+  <img src="normal-ideal.png" class="home-title" alt="Normal Ideal background">
+  <button class="home-diagram" id="home-diagram" aria-label="서체 분류 살펴보기">
+    <img src="main-name.png" alt="Font Diagram">
+  </button>
+  <button class="home-down" id="home-down" aria-label="서체 소개 아래로 이동"><svg viewBox="0 0 52 18" aria-hidden="true"><path d="M1 1 L26 12 L51 1" fill="none" stroke="currentColor" stroke-width="1"/></svg></button>
+</section>
+
+<!-- ═════════ 타이핑 화면 ═════════ -->
+<button class="logo" id="home" aria-label="처음 화면">
+  <img src="title.png" alt="Normal Ideal">
+</button>
+<button class="try" id="try">Try typing</button>
+
+<nav class="categories" id="categories" aria-label="서체 카테고리"></nav>
+
+<textarea class="editor" id="editor" aria-label="영문 소문자 타이핑" placeholder="type here" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+
+<section class="selection" aria-label="선택한 서체">
+  <h1 id="fontname">Font name </h1>
+  <div id="style-label">Basic structure</div>
+  <div class="tabs" role="tablist" aria-label="서체 스타일">
+    <button role="tab" data-style="0" aria-label="Basic structure 기본 서체" title="Basic structure · 기본 서체" aria-selected="true"></button>
+    <button role="tab" data-style="1" aria-label="Indigenous culture 원주민 문화" title="Indigenous culture · 원주민 문화" aria-selected="false"></button>
+    <button role="tab" data-style="2" aria-label="Modern culture 현대 문화" title="Modern culture · 현대 문화" aria-selected="false"></button>
+  </div>
+  
+  <div class="bottom-controls">
+    <label>
+      <input id="size" type="range" min="32" max="300" value="190" aria-label="글자 크기 조절">
+    </label>
+    <label>
+      <input id="lineheight" type="range" min="0.5" max="3.0" step="0.05" value="1.18" aria-label="행간 조절">
+    </label>
+  </div>
+</section>
+
+<p class="status" id="status"></p>
+
+<!-- ═════════ 서체 임시 교체 다이얼로그 ═════════ -->
+<dialog id="settings">
+  <form method="dialog"><button class="close" aria-label="닫기">×</button></form>
+  <h2>Connect your typefaces</h2>
+  <div id="fontrows"></div>
+  <p id="uploadstatus" role="status"></p>
+</dialog>
+
+
+<!-- ═══════ 신규: 스크롤형 서체 소개 ═══════ -->
+<main class="showcase" id="showcase">
+  <section class="showcase-index" id="overview" aria-label="4가지 변형 원리">
+    <div class="index-up"><a href="#home" aria-label="홈으로 돌아가기"><svg viewBox="0 0 52 18" aria-hidden="true"><path d="M1 14 L26 3 L51 14" fill="none" stroke="currentColor" stroke-width="1"/></svg></a></div>
+    <a class="index-row" href="#spec-0"><span class="index-name">Expansion &amp; Emphasis</span><span class="index-sub">Lips</span></a>
+    <a class="index-row" href="#spec-1"><span class="index-name">Reconstruction &amp; Realignment</span><span class="index-sub">Tooth</span></a>
+    <a class="index-row" href="#spec-2"><span class="index-name">Distortion &amp; Compression</span><span class="index-sub">Neck/Waist</span></a>
+    <a class="index-row" href="#spec-3"><span class="index-name">Structural Transformation</span><span class="index-sub">Skull/Face</span></a>
+  </section>
+  <div id="specimen-sections"></div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════
+   데이터
+   ═══════════════════════════════════════════ */
+const labels = ['Basic\nstructure', 'Indigenous\nculture', 'Modern\nculture'];
+const titles = ['Lips', 'Tooth', 'Neck·Waist Shape', 'Facial\n Contouring'];
+const subs   = ['Expansion & Emphasis', 'Reconstruction & Realignment', 'Distortion & Compression', 'Structural Transformation'];
+
+const groups = [
+  {name:'lips', names:['lip shape','mursi','lip fillers']},
+  {name:'teeth', names:['tooth shape','mentawai','dental veneer']},
+  {name:'neck & waist', names:['neck & waist\nshape','kayan','corset']},
+  {name:'skull & face', names:['facial\nstructure','mangbetu','facial\ncontouring']}
+];
+
+const fonts = {
+  'ni-file-font-0-0':'Lips-Regular.woff2',       'ni-file-font-0-1':'mursi-Regular.woff2',    'ni-file-font-0-2':'filler-Regular.woff2',
+  'ni-file-font-1-0':'teeth-Regular.woff2',      'ni-file-font-1-1':'mantwai-Regular.woff2',  'ni-file-font-1-2':'laminate-Regular.woff2',
+  'ni-file-font-2-0':'neck-Regular.woff2',       'ni-file-font-2-1':'kayan-Regular.woff2',    'ni-file-font-2-2':'corset-Regular.woff2',
+  'ni-file-font-3-0':'headstructure-Regular.woff2','ni-file-font-3-1':'mangbetu-Regular.woff2','ni-file-font-3-2':'face-Regular.woff2',
+};
+
+/* ═══════════════════════════════════════════
+   상태
+   ═══════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+let category = 0, style = 0;
+let chosen = false;
+let composing = false;
+let hintTimer = 0;
+
+const key = (c = category, s = style) => `ni-file-font-${c}-${s}`;
+
+
+/* ═════════ 소개 페이지: 세로 폰트 이름 호버 -> a~z 자동 반복 ═════════
+   왼쪽 3개 이름을 호버할 때만 작동합니다.
+   기본 상태는 각 그룹의 Basic 글자 a 입니다.
+   자동 전환 간격은 GLYPH_INTERVAL 값으로 조정합니다.
+*/
+const GLYPH_INTERVAL = 185; // ms: 숫자가 작을수록 빠르게 전환됨
+
+/* 12개 서체별 글자 크기 (vw 단위) */
+const specimenFontSizes = [
+  [48, 35, 55], // 1. Lips: Lip Shape / Mursi / Lip Fillers
+  [37, 37, 65], // 2. Tooth: Tooth Shape / Mentawai / Dental Veneer
+  [48, 48, 48], // 3. Neck/Waist: Neck Shape / Kayan / Corset
+  [43, 43, 43]  // 4. Skull/Face: Facial Structure / Mangbetu / Facial Contouring
+];
+
+const specimenPositions = [
+  // [가로 X, 세로 Y]
+
+  [[-7, -8], [-6, -8], [-6,-12]], // Lips
+  [[-5, -7], [-5, -7], [-6, -3]], // Tooth
+  [[-7, -6], [-7, -7], [-7, -8]], // Neck/Waist
+  [[-5, -8], [-5, -5], [-5, -5]]  // Skull/Face
+];
+
+const specimenData = [
+  {
+    category:'Lips', title:'Expansion & Emphasis', short:'Lips',
+    description:'입술의 크기와 부피를 변화시키는 방식에서 확장과 강조의 원리를 도출한다. 무르시족의 입술 접시 문화는 곡선 반경과 궤적을 바깥으로 확장하는 방식으로, 현대의 입술 필러는 둥근 획의 무게 중심을 부풀리는 방식으로 표현된다.',
+    names:['Lip Shape','Mursi','Lip Fillers'],
+    ko:['입술의 기본 형태\n곡선과 속공간의 기본 형태','무르시족의 입술 접시 문화\n곡선의 연장과 둘레의 확장','입술 필러 시술의 입술 변형\n획의 팽창과 속공간의 축소']
+  },
+  {
+    category:'Tooth', title:'Reconstruction & Realignment', short:'Tooth',
+    description:'치아의 형태를 깎아내거나 덧씌워 재구성하는 방식에서 조형 원리를 도출한다. 멘타와이족의 치아 연마 문화는 외곽을 깎아 날카로운 각을 형성하고, 라미네이트는 형태를 덧씌우고 정돈하여 균일한 구조로 재정렬한다.',
+    names:['Tooth Shape','Mentawai','Dental Veneer'],
+    ko:['치아의 기본 형태\n변형 이전의 자연스러운 형태와 배열','멘타와이족의 치아 연마 문화\n획의 절삭과 날카로운 각의 형성','라미네이트 시술의 치아 변형\n외곽의 재구성과 균일한 정렬']
+  },
+  {
+    category:'Neck/Waist', title:'Distortion & Compression', short:'Neck/Waist',
+    description:'신체에 가해지는 압력으로 길이와 폭이 변화하는 현상을 글자의 비례에 적용한다. 카얀족의 황동 목 링은 세로 방향의 연장으로, 코르셋은 중심부의 압축과 수축으로 번역하여 기존 글자 구조의 균형을 변화시킨다.',
+    names:['Neck/Waist\nShape','Kayan','Corset'],
+    ko:['목과 허리의 기본 구조\n길게 뻗은 수직적 비례','카얀족의 목 링 문화\n곡선의 종횡과 길이의 왜곡','코르셋 문화\n중심부의 압축과 폭의 수축']
+  },
+  {
+    category:'Skull/Face', title:'Structural Transformation', short:'Skull/Face',
+    description:'두개골과 안면골격의 형태를 변화시키는 방식에서 글자의 구조적 변형을 도출한다. 망베투족의 리폼보 문화는 중심축과 길이를 사선 방향으로 연장하고, 안면윤곽수술은 획의 일부를 절삭하고 재구성한다.',
+    names:['Facial\nStructure','Mangbetu','Facial\nContouring'],
+    ko:['안면 골격의 기본 구조\n곡선과 직선이 이루는 기본 골격','망베투족의 리폼보\n중심축의 이동과 골격의 연장','안면윤곽수술\n획의 절삭과 구조의 재구성']
+  }
+];
+
+$('specimen-sections').innerHTML = specimenData.map((d,c) => `
+  <section class="spec-section" id="spec-${c}" aria-label="${d.title}">
+    <header class="spec-heading">
+      <h2>${d.title === 'Structural Transformation'
+  ? 'Structural<br>Transformation'
+  : d.title.replace(' & ', '<br>&amp; ')}</h2>
+
+      <span class="spec-side">${d.short}</span>
+    </header>
+    <div class="spec-content">
+      <div class="spec-info">
+        ${d.names.map((name,i) => `
+          <div class="spec-info-row">
+            <span class="spec-index">${c+1}-${'ABC'[i]}</span>
+            <span class="spec-vertical">${labels[i]}</span>
+            <span class="spec-copy">${d.ko[i].replace('\n','<br>')}</span>
+            <button class="spec-fontname" type="button" data-font-hover="${c}-${i}"
+              aria-label="${name} 글꼴 a부터 z까지 미리보기">${name}</button>
+          </div>`).join('')}
+      </div>
+      <div class="spec-preview" id="spec-preview-${c}">
+        <p class="spec-description">${d.description}</p>
+        <span class="spec-glyph" id="spec-glyph-${c}" aria-hidden="true">a</span>
+        <div class="spec-side-labels" aria-hidden="true">
+          <span>Basic</span><span>문화의 확장</span><span>두께의 확장</span>
+        </div>
+      </div>
+    </div>
+  </section>`).join('');
+
+const specimenTimers = new Map();
+function stopSpecimen(c) {
+  if (specimenTimers.has(c)) {
+    clearInterval(specimenTimers.get(c));
+    specimenTimers.delete(c);
+  }
+  const glyph = $(`spec-glyph-${c}`);
+  const preview = $(`spec-preview-${c}`);
+  if (!glyph || !preview) return;
+  glyph.textContent = 'a';
+  glyph.style.fontFamily = `"${key(c,0)}", Georgia, serif`;
+  preview.classList.remove('is-active');
+}
+function startSpecimen(c,s) {
+  stopSpecimen(c);
+  const glyph = $(`spec-glyph-${c}`);
+  const preview = $(`spec-preview-${c}`);
+  glyph.style.fontFamily = `"${key(c,s)}", Georgia, serif`;
+  glyph.textContent = 'a';
+
+  glyph.style.fontSize = `${specimenFontSizes[c][s]}cqw`;
+  // 서체별 위치 적용
+const [x, y] = specimenPositions[c][s];
+glyph.style.transform = `translate(${x}cqw, ${y}cqw)`;
+
+
+  preview.classList.add('is-active');
+  let index = 0;
+  specimenTimers.set(c, setInterval(() => {
+    index = (index + 1) % 26;
+    glyph.textContent = String.fromCharCode(97 + index);
+  }, GLYPH_INTERVAL));
+}
+for (let c=0; c<4; c++) {
+  $(`spec-glyph-${c}`).style.fontFamily = `"${key(c,0)}", Georgia, serif`;
+}
+
+document.querySelectorAll('[data-font-hover]').forEach(button => {
+  const [c, s] = button.dataset.fontHover.split('-').map(Number);
+
+  // PC: 마우스를 올리면 시작
+  button.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse') {
+      startSpecimen(c, s);
+    }
+  });
+
+  // PC: 마우스가 벗어나면 종료
+  button.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') {
+      stopSpecimen(c);
+    }
+  });
+
+  // 키보드 접근
+  button.addEventListener('focus', () => {
+    if (button.matches(':focus-visible')) {
+      startSpecimen(c, s);
+    }
+  });
+
+  button.addEventListener('blur', () => {
+    if (button.matches(':focus-visible')) {
+      stopSpecimen(c);
+    }
+  });
+
+  // 모바일: 터치하면 시작, 다시 터치하면 종료
+  button.addEventListener('click', () => {
+    if (!window.matchMedia('(hover: hover)').matches) {
+      const active = button.classList.contains('touch-active');
+
+      document.querySelectorAll('.spec-fontname.touch-active')
+        .forEach(b => b.classList.remove('touch-active'));
+
+      for (let i = 0; i < 4; i++) stopSpecimen(i);
+
+      if (!active) {
+        button.classList.add('touch-active');
+        startSpecimen(c, s);
+      }
+    }
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) for (let c=0;c<4;c++) stopSpecimen(c);
+});
+
+/* ═══════════════════════════════════════════
+   UI 생성
+   ═══════════════════════════════════════════ */
+$('categories').innerHTML = groups.map((g, c) => `
+  <div class="category">
+    <button class="category-main" data-category="${c}"><span>${titles[c]}</span><span>${subs[c]}</span></button>
+    <div class="marks">${labels.map((label, s) =>
+      `<button class="mark" data-c="${c}" data-s="${s}" title="${label}" aria-label="${titles[c]} ${label}"></button>`).join('')}
+    </div>
+  </div>`).join('');
+
+$('fontrows').innerHTML = groups.map((g, c) => `
+  <div class="font-group"><strong>${titles[c]}</strong>${labels.map((l, s) => `
+    <label class="font-upload" id="slot-${c}-${s}">${l}<span id="filename-${c}-${s}">미연결</span>
+      <input type="file" accept=".otf,.ttf,.woff,.woff2" data-c="${c}" data-s="${s}" aria-label="${g.name} ${l} 서체 연결">
+    </label>`).join('')}
+  </div>`).join('');
+
+for (let c = 0; c < 4; c++) for (let s = 0; s < 3; s++) {
+  $(`filename-${c}-${s}`).textContent = fonts[key(c, s)];
+  $(`slot-${c}-${s}`).classList.add('loaded');
+}
+
+/* ═══════════════════════════════════════════
+   화면 갱신
+   ═══════════════════════════════════════════ */
+function render() {
+  document.querySelectorAll('[data-style]').forEach((b, i) => {
+    b.setAttribute('aria-selected', i === style);
+    b.tabIndex = i === style ? 0 : -1;
+  });
+  document.querySelectorAll('.mark').forEach(b => {
+    const active = chosen && +b.dataset.c === category && +b.dataset.s === style;
+    b.classList.toggle('selected', active);
+    b.setAttribute('aria-pressed', active);
+  });
+  document.querySelectorAll('.category-main').forEach(b =>
+    b.setAttribute('aria-pressed', chosen && +b.dataset.category === category));
+
+  $('style-label').textContent = labels[style];
+  $('fontname').textContent = chosen ? groups[category].names[style] : 'Font name';
+  $('fontname').classList.toggle('long-name', $('fontname').textContent.length > 13);
+
+  $('editor').style.fontFamily = fonts[key()] ? `"${key()}",Georgia,serif` : 'Georgia,serif';
+}
+
+/* ═══════════════════════════════════════════
+   카테고리 / 스타일 선택
+   ═══════════════════════════════════════════ */
+$('categories').onclick = e => {
+  const b = e.target.closest('[data-category],.mark');
+  if (!b) return;
+  category = +(b.dataset.category ?? b.dataset.c);
+  if (b.dataset.s !== undefined) style = +b.dataset.s;
+  chosen = true;
+  render();
+};
+
+document.querySelectorAll('[data-style]').forEach(b => {
+  b.onclick = () => { style = +b.dataset.style; chosen = true; render(); };
+  b.onkeydown = e => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    style = e.key === 'Home' ? 0 : e.key === 'End' ? 2 : (style + (e.key === 'ArrowRight' ? 1 : 2)) % 3;
+    chosen = true;
+    render();
+    document.querySelector(`[data-style="${style}"]`).focus();
+  };
+});
+
+/* ═══════════════════════════════════════════
+   홈 ↔ 타이핑 화면
+   ═══════════════════════════════════════════ */
+function showPage() {
+  const typing = location.hash === '#type';
+  document.body.classList.toggle('is-home', !typing);
+  $('home-screen').hidden = typing;
+  $('showcase').hidden = typing;
+  if (typing) {
+    window.scrollTo(0, 0);
+    chosen = true;
+    render();
+  } else {
+    // 홈/목차/특정 섹션의 해시 접근도 지원
+    const targetId = location.hash.slice(1);
+    const target = targetId && document.getElementById(targetId);
+    requestAnimationFrame(() => {
+      if (target && targetId !== 'home') target.scrollIntoView();
+      else if (targetId === 'home') window.scrollTo({top:0});
+    });
+  }
+}
+function openTyping() {
+  if (location.hash !== '#type') location.hash = 'type';
+  else showPage();
+}
+$('try').onclick = openTyping;
+$('home-diagram').onclick = openTyping;
+$('home').onclick = () => { location.hash = 'home'; };
+$('home-down').onclick = () => { location.hash = 'overview'; };
+window.addEventListener('hashchange', showPage);
+showPage();
+
+/* ═══════════════════════════════════════════
+   입력 정리
+   ═══════════════════════════════════════════ */
+const HANGUL_KEYS = {
+  'ㄱ':'r','ㄲ':'r','ㄳ':'rt','ㄴ':'s','ㄵ':'sw','ㄶ':'sg','ㄷ':'e','ㄸ':'e','ㄹ':'f','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq','ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg',
+  'ㅁ':'a','ㅂ':'q','ㅃ':'q','ㅄ':'qt','ㅅ':'t','ㅆ':'t','ㅇ':'d','ㅈ':'w','ㅉ':'w','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g',
+  'ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'o','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'p','ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y',
+  'ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b','ㅡ':'m','ㅢ':'ml','ㅣ':'l',
+};
+const H_LEAD  = [...'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'];
+const H_VOWEL = [...'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'];
+const H_TAIL  = ['', ...'ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ'];
+
+function hangulToKeys(ch) {
+  const code = ch.charCodeAt(0);
+  if (code >= 0xAC00 && code <= 0xD7A3) {
+    const i = code - 0xAC00;
+    return HANGUL_KEYS[H_LEAD[Math.floor(i / 588)]]
+         + HANGUL_KEYS[H_VOWEL[Math.floor(i % 588 / 28)]]
+         + (i % 28 ? HANGUL_KEYS[H_TAIL[i % 28]] : '');
+  }
+  return HANGUL_KEYS[ch] ?? ch;
+}
+
+const toKeys = s => Array.from(s, hangulToKeys).join('');
+const clean  = s => toKeys(s).toLowerCase().replace(/[^a-z \n]/g, '');
+
+function showHint(msg) {
+  $('status').textContent = msg;
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(render, 2500);
+}
+
+function sanitize() {
+  if (composing) return;
+  const el = $('editor'), raw = el.value, start = el.selectionStart, end = el.selectionEnd;
+  const cleaned = clean(raw);
+  el.value = cleaned;
+  el.setSelectionRange(clean(raw.slice(0, start)).length, clean(raw.slice(0, end)).length);
+  if (!chosen) { chosen = true; render(); }
+}
+
+$('editor').oninput = sanitize;
+$('editor').oncompositionstart = () => { composing = true; };
+$('editor').oncompositionend = () => { composing = false; sanitize(); };
+
+/* ═══════════════════════════════════════════
+   하단 패널 (사이즈 & 행간 조절)
+   ═══════════════════════════════════════════ */
+$('size').oninput = () => {
+  $('editor').style.fontSize = $('size').value + 'px';
+};
+$('lineheight').oninput = () => {
+  const lh = parseFloat($('lineheight').value);
+  $('editor').style.lineHeight = lh;
+  
+  /* 
+   * 텍스트 영역 내부에서 늘어나는 행간 여백만큼,
+   * 바깥쪽 margin-top을 마이너스로 당겨서 첫 줄 시작점을 완벽하게 픽스합니다.
+   * 폰트 사이즈(em)에 비례해서 알아서 작동하므로 글자 크기를 키워도 안 깨집니다!
+   */
+  $('editor').style.marginTop = `calc(-${(lh - 1.18) / 2}em)`;
+};
+
+/* ═══════════════════════════════════════════
+   서체 임시 교체 (파일 선택 → FontFace)
+   ═══════════════════════════════════════════ */
+async function loadFont(c, s, name, data) {
+  const id = key(c, s), face = new FontFace(id, `url(${data})`);
+  await face.load();
+  document.fonts.add(face);
+  fonts[id] = name;
+  $(`filename-${c}-${s}`).textContent = name;
+  $(`slot-${c}-${s}`).classList.add('loaded');
+  render();
+}
+
+$('fontrows').onchange = async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const c = +e.target.dataset.c, s = +e.target.dataset.s;
+  $('uploadstatus').textContent = '서체를 불러오는 중…';
+  try {
+    const data = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    await loadFont(c, s, file.name, data);
+    $('uploadstatus').textContent = '이번 화면에 폰트를 적용했어요. 파일을 다시 열면 프로젝트 기본 서체로 돌아옵니다.';
+  } catch {
+    $('uploadstatus').textContent = '파일을 읽을 수 없어요. 올바른 폰트 파일인지 확인해주세요.';
+  }
+};
+
+/* ═══════════════════════════════════════════
+   시작
+   ═══════════════════════════════════════════ */
+if (innerWidth < 701) { $('size').value = 75; $('size').oninput(); }
+render();
+</script>
+
+<!-- ═════════ 내장 서체 12개 ═════════ -->
+<style id="embedded-fonts">
+/* 0-0 · Lips shape */
+@font-face{font-family:"ni-file-font-0-0";src:url(Lips-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 0-1 · Mursi */
+@font-face{font-family:"ni-file-font-0-1";src:url(mursi-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 0-2 · Lip fillers */
+@font-face{font-family:"ni-file-font-0-2";src:url(filler-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 1-0 · Tooth shape */
+@font-face{font-family:"ni-file-font-1-0";src:url(teeth-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 1-1 · Mentawai */
+@font-face{font-family:"ni-file-font-1-1";src:url(mantwai-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 1-2 · Dental veneer */
+@font-face{font-family:"ni-file-font-1-2";src:url(laminate-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 2-0 · Neck & waist */
+@font-face{font-family:"ni-file-font-2-0";src:url(neck-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 2-1 · Kayan */
+@font-face{font-family:"ni-file-font-2-1";src:url(kayan-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 2-2 · Corset */
+@font-face{font-family:"ni-file-font-2-2";src:url(corset-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 3-0 · Facial structure */
+@font-face{font-family:"ni-file-font-3-0";src:url(headstructure-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 3-1 · Mangbetu */
+@font-face{font-family:"ni-file-font-3-1";src:url(mangbetu-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+/* 3-2 · facial contouring */
+@font-face{font-family:"ni-file-font-3-2";src:url(face-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+
+
+/* ===== 모바일 전용 레이아웃 ===== */
+@media (max-width: 600px) {
+
+  /* 전체 화면 */
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* 홈 화면 */
+  .home-diagram {
+    width: 45%;
+    max-width: none;
+    left: 4%;
+    top: 7%;
+  }
+
+  .home-title {
+    left: 3%;
+    top: 23%;
+    width: 94%;
+    height: 62%;
+    object-fit: contain;
+  }
+
+  .home-down {
+    bottom: 10px;
+  }
+
+  .try {
+    right: 5vw;
+    top: 3vh;
+    font-size: 14px;
+  }
+
+  /* 목차 */
+  .showcase-index {
+    height: 100svh;
+    min-height: 550px;
+    grid-template-rows: 52px repeat(4, 1fr);
+  }
+
+  .index-name {
+    font-size: clamp(20px, 5.2vw, 32px);
+    white-space: normal;
+    max-width: 76%;
+    line-height: 1.15;
+  }
+
+  .index-sub {
+    right: 4%;
+    bottom: 22%;
+    font-size: 11px;
+  }
+
+  /* 검정색 제목 영역 */
+  .spec-heading {
+    height: 34svh;
+    min-height: 200px;
+    padding: 20px 4%;
+  }
+
+  .spec-heading h2 {
+    font-size: clamp(30px, 8vw, 46px);
+    line-height: 1.05;
+  }
+
+  .spec-heading .spec-side {
+    right: 5%;
+    bottom: 21%;
+    font-size: 13px;
+  }
+
+  /* 흰색 정보 영역 */
+  .spec-content {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  /* 왼쪽의 세 가지 서체 정보 */
+  .spec-info {
+    height: auto;
+    min-height: 360px;
+    padding: 12px 3%;
+    grid-template-rows: repeat(3, minmax(112px, auto));
+  }
+
+  .spec-info-row {
+    grid-template-columns:
+      9% 18% minmax(0, 1fr) 19%;
+    column-gap: 1%;
+    min-height: 112px;
+  }
+
+  .spec-index {
+    font-size: 10px;
+    transform: translateX(0);
+  }
+
+  .spec-vertical {
+    font-size: 11px;
+    transform: translateX(0) rotate(180deg);
+  }
+
+  .spec-copy {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .spec-fontname {
+    font-size: 11px;
+    padding: 12px 4px;
+  }
+
+  /* 글자 미리보기 영역 */
+  .spec-preview {
+    width: 100%;
+    height: 45svh;
+    min-height: 300px;
+    container-type: inline-size;
+  }
+
+  /* 기본 상태: 설명 표시 */
+  .spec-description {
+    display: block;
+    left: 5%;
+    top: 8%;
+    width: 75%;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  /* 터치로 활성화하면 글자만 표시 */
+  .spec-preview.is-active .spec-description {
+    display: none;
+  }
+
+  .spec-side-labels {
+    right: 5%;
+  }
+
+  .spec-side-labels span {
+    font-size: 10px;
+  }
+
+  /* 타이핑 화면 */
+  .categories {
+    position: fixed;
+    left: 15px;
+    right: 15px;
+    top: 80px;
+    width: auto;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px 8px;
+  }
+
+  .category-main {
+    font-size: 10px;
+  }
+
+  .editor {
+    position: fixed;
+    left: 15px;
+    right: 15px;
+    top: 235px;
+    bottom: 180px;
+    width: auto;
+    height: auto;
+    min-height: 100px;
+    padding: 0;
+    font-size: 68px;
+    overflow-y: auto;
+  }
+
+  .selection {
+    position: fixed;
+    left: 15px;
+    right: 15px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: auto;
+  }
+
+  .selection h1,
+  .selection h1.long-name {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  #style-label {
+    font-size: 13px;
+  }
+
+  .bottom-controls {
+    margin-top: 12px;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .bottom-controls input[type="range"] {
+    width: min(200px, 65vw);
+  }
+}
+
+
+</style>
+</body>
+</html>
